@@ -29,11 +29,13 @@ Run the installer any time. It downloads the patch and compares its SHA-256 with
 If nothing changed, it leaves the installation alone; if the patch changed, it backs up the old patch
 and installs the new one.
 
-### When the Discord link expires
+### Patch source / auto-update
 
-The built-in download URL comes from a Discord attachment and is signed, so it can expire. When that
-happens, type **L** at the link prompt, then in Discord right-click the patch ZIP → **Copy link** and
-paste it. The installer remembers the new link.
+The patch itself is hosted at `patch/lbp3-128-online.zip` in this repository, so there is no expiring
+Discord link. Every run downloads it from GitHub and compares its SHA-256 with the installed copy; it
+only reinstalls when the file changed. A copy of the patch is also included in the release ZIP as an
+offline fallback. If you want to use a different source, type **L** at the prompt and paste a URL or
+local path.
 
 ## Build check
 

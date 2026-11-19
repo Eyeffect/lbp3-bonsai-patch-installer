@@ -17,10 +17,10 @@ $cfgHash   = Join-Path $scriptDir "installed-hash.txt"
 $tmpZip    = Join-Path $env:TEMP "lbp3-bonsai-patch-update.zip"
 $stage     = Join-Path $env:TEMP "lbp3-bonsai-patch-stage"
 
-# Link captured from the Discord attachment. Discord signs this URL, so it can
-# expire. If it does, the script asks you to paste a fresh "Copy link" from
-# Discord and remembers it for next time.
-$defaultUrl = "https://cdn.discordapp.com/attachments/1544884611962900520/1556048296441675886/lbp3-128-online.zip?backend=b2&ex=6b000c27&is=6afebaa7&hm=637539edd70aa65719534795c9c2d84445e29388efe16da36477236ce7dad389"
+# The patch is hosted in this GitHub repo, so there is no expiring Discord link.
+# Updating the file in the repo makes every installer run pick up the new hash.
+$defaultUrl = "https://raw.githubusercontent.com/Eyeffect/lbp3-bonsai-patch-installer/main/patch/lbp3-128-online.zip"
+$localPatch = Join-Path $scriptDir "lbp3-128-online.zip"
 
 function Head($text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }
 function Good($text) { Write-Host $text -ForegroundColor Green }
@@ -200,16 +200,16 @@ try {
     # --- Patch source link -------------------------------------------------
     $source = ReadText $cfgUrl
     if (-not $source) { $source = $defaultUrl; SaveText $cfgUrl $source }
-    Head "Patch download link"
-    Info "Saved link: $source"
-    Info "If Discord says the link expired: right-click the zip in Discord > Copy link."
-    $change = Ask "Press Enter to use this link, or type L to paste a new one"
+    Head "Patch update source"
+    Info "Source: $source"
+    Info "The patch is hosted in this GitHub repo; every run checks for a newer version."
+    $change = Ask "Press Enter to use this source, or type L to paste a custom URL/local file"
     if ($change -ieq "L") {
-        $newSource = Ask "Paste the new link, or the full path to the local zip"
-        if (-not $newSource) { Die "No link entered." }
+        $newSource = Ask "Paste the new URL, or the full path to a local zip"
+        if (-not $newSource) { Die "No source entered." }
         $source = $newSource
         SaveText $cfgUrl $source
-        Good "New link saved for future updates."
+        Good "New source saved for future updates."
     }
 
     # --- Download ----------------------------------------------------------
@@ -221,8 +221,16 @@ try {
             $downloaded = $true
         } catch {
             Warn "Download failed: $($_.Exception.Message)"
-            if ($attempt -eq 3) { Die "Could not download the patch. Check the link and try again." }
-            $fresh = Ask "Paste a fresh Discord 'Copy link' URL (or press Enter to retry)"
+            if ($attempt -eq 3) {
+                if (Test-Path -LiteralPath $localPatch) {
+                    Warn "Falling back to the bundled local copy: $localPatch"
+                    Copy-Item -LiteralPath $localPatch -Destination $tmpZip -Force
+                    $downloaded = $true
+                    break
+                }
+                Die "Could not download the patch and no local fallback was found."
+            }
+            $fresh = Ask "Paste a different URL/local path, or press Enter to retry"
             if ($fresh) { $source = $fresh; SaveText $cfgUrl $source; Info "Saved. Retrying..." }
         }
     }
@@ -317,8 +325,8 @@ try {
     Head "Done"
     Good "1. Start LittleBigPlanet 3 and press Play."
     Good "2. If you get a 403: on the Bonsai website enable 'Allow IP Authentication' and approve the login request."
-    Good "3. Run this installer again any time to auto-update the patch."
-    Info "When the Discord link expires, choose L and paste a fresh 'Copy link'."
+    Good "3. Run this installer again any time to check GitHub for a newer patch."
+    Info "No Discord link is needed - the patch is hosted in this repo."
 } catch {
     Write-Host "`nERROR: $($_.Exception.Message)" -ForegroundColor Red
     exit 1

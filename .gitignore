@@ -3,5 +3,8 @@ patch-source.txt
 installed-hash.txt
 port-path.txt
 
+# Local copy used as an offline fallback (the tracked copy lives in patch/)
+/lbp3-128-online.zip
+
 # Local build artifacts
 *.log
