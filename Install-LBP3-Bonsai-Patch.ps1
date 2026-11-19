@@ -19,7 +19,7 @@ $stage     = Join-Path $env:TEMP "lbp3-bonsai-patch-stage"
 
 # The patch is hosted in this GitHub repo, so there is no expiring Discord link.
 # Updating the file in the repo makes every installer run pick up the new hash.
-$defaultUrl = "https://raw.githubusercontent.com/Eyeffect/lbp3-bonsai-patch-installer/main/patch/lbp3-128-online.zip"
+$defaultUrl = "https://raw.githubusercontent.com/Eyeffect/lbp3-bonsai-patch-installer/refs/heads/main/patch/lbp3-128-online.zip"
 $localPatch = Join-Path $scriptDir "lbp3-128-online.zip"
 
 function Head($text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }

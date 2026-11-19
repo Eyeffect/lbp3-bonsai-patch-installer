@@ -5,23 +5,28 @@ For: littlebigplanet3-pc (the native Windows port), CUSA00473 v1.28.
 
 WHAT IT DOES
 - Finds your lbp3-pc installation (or you can drag the folder onto the .bat).
-- Downloads the Bonsai online patch and checks it really targets CUSA00473 1.28.
+- Checks that you have the ONLINE build; the Standard build cannot use the patch.
+- Downloads the Bonsai patch from this GitHub repo and checks it really targets
+  CUSA00473 1.28 / eboot.bin.
 - Installs it into data\patches and enables it in data\patches.json.
 - Makes sure lbp3_online=1 and asks for your Bonsai username (online_id).
-- Every time you run it, it compares the SHA-256 hash and only reinstalls if the
-  patch actually changed (auto-update).
+- Every run compares the SHA-256 hash and only reinstalls if the patch changed.
 
 HOW TO USE
-1. Keep both files together in one folder:
+1. Keep these files together in one folder:
      Install-LBP3-Bonsai-Patch.bat
      Install-LBP3-Bonsai-Patch.ps1
+     lbp3-128-online.zip   (offline fallback; optional)
 2. Double-click the .bat file.
 3. If it cannot find the game, drag the folder containing
    "LittleBigPlanet 3.exe" onto the .bat file.
-4. Press Enter when asked about the download link. If Discord says the link
-   expired, type L, then in Discord right-click the patch zip > Copy link and
-   paste it.
+4. Press Enter to use the GitHub-hosted patch. Type L only if you want to use a
+   different URL or local zip.
 5. Start LittleBigPlanet 3 and press Play.
+
+No Discord link is needed. The patch is hosted in the GitHub repo, so updates are
+found automatically. If GitHub is unreachable, the bundled lbp3-128-online.zip
+is used instead.
 
 GETTING A 403 IN GAME
 On the Bonsai website: Edit Profile > enable "Allow IP Authentication", then

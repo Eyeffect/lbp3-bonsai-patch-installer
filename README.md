@@ -31,7 +31,8 @@ and installs the new one.
 
 ### Patch source / auto-update
 
-The patch itself is hosted at `patch/lbp3-128-online.zip` in this repository, so there is no expiring
+The patch itself is hosted at `patch/lbp3-128-online.zip` in this repository (downloaded via the
+`refs/heads/main` raw URL), so there is no expiring
 Discord link. Every run downloads it from GitHub and compares its SHA-256 with the installed copy; it
 only reinstalls when the file changed. A copy of the patch is also included in the release ZIP as an
 offline fallback. If you want to use a different source, type **L** at the prompt and paste a URL or
