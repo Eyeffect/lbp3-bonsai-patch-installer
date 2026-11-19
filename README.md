@@ -1,56 +1,66 @@
 # LBP3 Bonsai Patch Installer
 
-A one-click installer / auto-updater for the **Bonsai online patch** on
-[littlebigplanet3-pc](https://github.com/sethlikepie/littlebigplanet3-pc) (the native Windows port of
-LittleBigPlanet 3 PS4, CUSA00473 v1.28).
+A one-click installer and auto-updater for the **Bonsai online patch** on
+[littlebigplanet3-pc](https://github.com/sethlikepie/littlebigplanet3-pc) — the native Windows port of
+LittleBigPlanet 3 PS4 (CUSA00473 v1.28).
 
-The port ships with online support disabled by default and **no server patch**. This tool installs
-sgdc3's `LBP3 online v01.28: custom server (lbp.lbpbonsai.com)` patch into an existing installation.
+The port ships with online support off by default and **no server patch**. This tool installs sgdc3's
+`LBP3 online v01.28: custom server (lbp.lbpbonsai.com)` patch into an existing installation.
+
+## Features
+
+- Detects the **Online** vs **Standard** build and refuses to patch a Standard install.
+- Finds your lbp3-pc folder automatically, or you can drag it onto the `.bat` file.
+- Downloads the patch from this repository and verifies it targets CUSA00473 v1.28 / `eboot.bin`.
+- Sets `lbp3_online=1` and asks for your Bonsai username (`online_id`), including the option to change an existing one.
+- Enables the patch in `data\patches.json` and writes BOM-free JSON (a BOM makes the launcher crash on Play).
+- **Auto-update:** every run compares SHA-256 hashes and only reinstalls when the patch changes.
+- Bundled offline fallback if GitHub is unreachable.
 
 ## Download
 
-Grab `LBP3-Bonsai-Installer.zip` from the [latest release](../../releases/latest), extract it, and keep
-these two files together:
+Get `LBP3-Bonsai-Installer.zip` from the [latest release](../../releases/latest) and extract it. Keep
+these files together in one folder:
 
-- `Install-LBP3-Bonsai-Patch.bat`
-- `Install-LBP3-Bonsai-Patch.ps1`
+- `Install-LBP3-Bonsai-Patch.bat` — double-click this
+- `Install-LBP3-Bonsai-Patch.ps1` — installer logic
+- `lbp3-128-online.zip` — offline fallback copy of the patch
 
-## Usage
+## Requirements
+
+- Windows 10/11 and an existing **Online** build of littlebigplanet3-pc (not Standard).
+- LittleBigPlanet 3 US, CUSA00473, with update 1.28.
+- A [Bonsai account](https://lbp.lbpbonsai.com/register) whose username matches your `online_id`.
+
+## Quick start
 
 1. Double-click **`Install-LBP3-Bonsai-Patch.bat`**.
-2. If the game folder is not found automatically, drag the folder containing
-   `LittleBigPlanet 3.exe` onto the `.bat` file.
-3. Press **Enter** when asked about the download link.
-4. Start LittleBigPlanet 3 and press **Play**.
+2. If the game folder is not found, drag the folder containing `LittleBigPlanet 3.exe` onto the `.bat`.
+3. Press **Enter** to use the GitHub-hosted patch, or type `L` to supply a different URL/local file.
+4. Enter your Bonsai username when asked (or press Enter to keep the current one).
+5. Start LittleBigPlanet 3 and press **Play**.
 
-### Auto-update
+## Patch source and auto-update
 
-Run the installer any time. It downloads the patch and compares its SHA-256 with the installed copy.
-If nothing changed, it leaves the installation alone; if the patch changed, it backs up the old patch
-and installs the new one.
+The patch lives at `patch/lbp3-128-online.zip` in this repository and is downloaded from
+`https://raw.githubusercontent.com/Eyeffect/lbp3-bonsai-patch-installer/refs/heads/main/patch/lbp3-128-online.zip`.
 
-### Patch source / auto-update
-
-The patch itself is hosted at `patch/lbp3-128-online.zip` in this repository (downloaded via the
-`refs/heads/main` raw URL), so there is no expiring
-Discord link. Every run downloads it from GitHub and compares its SHA-256 with the installed copy; it
-only reinstalls when the file changed. A copy of the patch is also included in the release ZIP as an
-offline fallback. If you want to use a different source, type **L** at the prompt and paste a URL or
-local path.
+Each run downloads it and compares its SHA-256 with the installed copy. If nothing changed, nothing is
+touched; if it changed, the old patch is backed up (and its `files.json` disabled so it is never
+applied twice) and the new one is installed. No external expiring download link is involved.
 
 ## Build check
 
-The installer first checks whether the detected installation is the **Online** build. The Standard
-build has all networking code compiled out, so the patch cannot work there. If a Standard build is
-found, the installer warns you to install `lbp3-pc-online-<version>.zip` and lets you cancel or
-continue anyway.
+The Standard build has all networking code compiled out, so the patch cannot work. The installer
+checks for online-code markers in `bin\lbp3-probe.exe`. If a Standard build is detected, it tells you
+to install `lbp3-pc-online-<version>.zip` and lets you cancel or continue anyway.
 
 ## What it changes
 
 - Copies the patch and `files.json` into `<port>\data\patches\bonsai-online\`.
-- Adds the patch to `<port>\data\patches.json` as enabled (preserving other entries).
-- Writes `lbp3_online=1` and your `online_id` (Bonsai username) into `<port>\data\lbp3.ini`.
-- Writes JSON as UTF-8 **without** a BOM (a BOM makes the port's Python launcher crash on Play).
+- Adds it to `<port>\data\patches.json` as enabled, preserving other entries.
+- Writes `lbp3_online=1` and `online_id=<your username>` into `<port>\data\lbp3.ini`.
+- Writes JSON as UTF-8 **without** a BOM.
 
 ## Getting a 403 in game
 
@@ -60,11 +70,13 @@ You may need to approve again when your IP changes.
 
 ## Caveat
 
-The native port does not include a shadNet client. Login to Bonsai can work, but friend lists and
-co-op that depend on shadNet may still fail. For fully working Bonsai online, follow the Project
-Imaginari shadPS4 guide instead.
+The native port has no shadNet client. Login to Bonsai can work, but friend lists and co-op that depend
+on shadNet may still fail. For fully working Bonsai online, use the Project Imaginari shadPS4 guide.
 
 ## Troubleshooting
 
-If Play closes immediately, send the newest `game-*.log` from `<port>\data\logs\` along with your
-report.
+If Play closes immediately, send the newest `game-*.log` from `<port>\data\logs\` with your report.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
