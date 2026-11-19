@@ -198,6 +198,7 @@ try {
     Info "SHA-256: $newHash"
 
     $installDir = Join-Path (Join-Path $port "data\patches") "bonsai-online"
+    $backup = $null
     $oldHash = ReadText $cfgHash
     if ($oldHash -eq $newHash -and (Test-Path -LiteralPath $installDir)) {
         Good "Already up to date. No files changed."
@@ -254,6 +255,11 @@ try {
     $id = ""
     $match = Select-String -LiteralPath $ini -Pattern '^\s*online_id\s*=\s*(.*)$' | Select-Object -Last 1
     if ($match) { $id = $match.Matches[0].Groups[1].Value.Trim() }
+    if ($id -match '^[A-Za-z0-9_-]{3,16}$') {
+        Info "Current Bonsai username (online_id): $id"
+        $newId = (Read-Host "Press Enter to keep it, or type a different username").Trim()
+        if ($newId) { $id = $newId }
+    }
     while ($id -notmatch '^[A-Za-z0-9_-]{3,16}$') {
         Warn "online_id is missing or invalid (3-16 letters/numbers/_/-)."
         $id = (Read-Host "Enter your Bonsai username").Trim()
@@ -261,6 +267,16 @@ try {
     Set-IniValue $ini "online_id" $id
     Set-IniValue $ini "lbp3_online" "1"
     Good "lbp3_online=1, online_id=$id"
+
+    # A backup folder still containing files.json would be auto-enabled by the
+    # launcher (patches with isEnabled="true" are picked up from every folder).
+    if ($backup -and (Test-Path -LiteralPath $backup)) {
+        $backupIndex = Join-Path $backup "files.json"
+        if (Test-Path -LiteralPath $backupIndex) {
+            Rename-Item -LiteralPath $backupIndex -NewName "files.json.bak" -Force
+            Info "Backup disabled (kept at $backup)."
+        }
+    }
 
     SaveText $cfgPort $port
 
