@@ -1,0 +1,7 @@
+# Per-user state written by the installer next to the scripts
+patch-source.txt
+installed-hash.txt
+port-path.txt
+
+# Local build artifacts
+*.log
