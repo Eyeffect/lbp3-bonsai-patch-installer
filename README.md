@@ -35,6 +35,13 @@ The built-in download URL comes from a Discord attachment and is signed, so it c
 happens, type **L** at the link prompt, then in Discord right-click the patch ZIP → **Copy link** and
 paste it. The installer remembers the new link.
 
+## Build check
+
+The installer first checks whether the detected installation is the **Online** build. The Standard
+build has all networking code compiled out, so the patch cannot work there. If a Standard build is
+found, the installer warns you to install `lbp3-pc-online-<version>.zip` and lets you cancel or
+continue anyway.
+
 ## What it changes
 
 - Copies the patch and `files.json` into `<port>\data\patches\bonsai-online\`.

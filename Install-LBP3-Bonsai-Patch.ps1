@@ -26,7 +26,12 @@ function Head($text) { Write-Host "`n=== $text ===" -ForegroundColor Cyan }
 function Good($text) { Write-Host $text -ForegroundColor Green }
 function Info($text) { Write-Host $text -ForegroundColor Gray }
 function Warn($text) { Write-Host $text -ForegroundColor Yellow }
-function Die($text) { Write-Host "`nERROR: $text" -ForegroundColor Red; throw $text }
+function Die($text) { throw $text }
+function Ask($prompt) {
+    $answer = Read-Host $prompt
+    if ($null -eq $answer) { return "" }
+    return $answer.Trim('"', ' ')
+}
 function SaveText($path, $text) { [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false)) }
 function ReadText($path) { if (Test-Path -LiteralPath $path) { (Get-Content -LiteralPath $path -Raw).Trim() } else { "" } }
 function Get-TitleIds($doc) {
@@ -58,11 +63,28 @@ function Find-Port($arg) {
     Head "Find your game"
     Info "Could not find the installation automatically."
     Info "Tip: drag the folder containing 'LittleBigPlanet 3.exe' onto the .bat file."
-    $p = Read-Host "Paste the full folder path here"
-    $p = $p.Trim('"', ' ')
+    $p = Ask "Paste the full folder path here"
     if (-not $p) { Die "No folder was entered." }
     if (-not (Test-Path (Join-Path $p "LittleBigPlanet 3.exe"))) { Die "That folder does not contain 'LittleBigPlanet 3.exe'." }
     return (Resolve-Path -LiteralPath $p).Path
+}
+
+function Test-OnlineBuild($port) {
+    # The Standard build compiles all networking out, so these strings are absent.
+    $markers = @("Online: mode ON", "libSceHttp online", "no valid online_id")
+    $candidates = @(
+        (Join-Path $port "bin\lbp3-probe.exe"),
+        (Join-Path $port "lbp3-runner.exe"),
+        (Join-Path $port "LittleBigPlanet 3.exe")
+    )
+    foreach ($candidate in $candidates) {
+        if (-not (Test-Path -LiteralPath $candidate)) { continue }
+        try {
+            $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($candidate))
+            foreach ($marker in $markers) { if ($text.Contains($marker)) { return $true } }
+        } catch { }
+    }
+    return $false
 }
 
 function Fetch-Patch($source, $destination) {
@@ -163,15 +185,27 @@ try {
     $port = Find-Port $PortDirArg
     Good "Game: $port"
 
+    # --- Online vs Standard build ------------------------------------------
+    Head "Checking build type"
+    if (Test-OnlineBuild $port) {
+        Good "Online build detected (networking code is present)."
+    } else {
+        Warn "This looks like the STANDARD build, which has no online code."
+        Warn "The Bonsai patch will do nothing. Install 'lbp3-pc-online-<version>.zip' instead."
+        $continueAnyway = Ask "Type C to continue anyway, or press Enter to cancel"
+        if ($continueAnyway -ine "C") { Die "Cancelled. Install the Online version of the port and run this again." }
+        Warn "Continuing anyway as requested."
+    }
+
     # --- Patch source link -------------------------------------------------
     $source = ReadText $cfgUrl
     if (-not $source) { $source = $defaultUrl; SaveText $cfgUrl $source }
     Head "Patch download link"
     Info "Saved link: $source"
     Info "If Discord says the link expired: right-click the zip in Discord > Copy link."
-    $change = Read-Host "Press Enter to use this link, or type L to paste a new one"
+    $change = Ask "Press Enter to use this link, or type L to paste a new one"
     if ($change -ieq "L") {
-        $newSource = (Read-Host "Paste the new link, or the full path to the local zip").Trim('"', ' ')
+        $newSource = Ask "Paste the new link, or the full path to the local zip"
         if (-not $newSource) { Die "No link entered." }
         $source = $newSource
         SaveText $cfgUrl $source
@@ -188,7 +222,7 @@ try {
         } catch {
             Warn "Download failed: $($_.Exception.Message)"
             if ($attempt -eq 3) { Die "Could not download the patch. Check the link and try again." }
-            $fresh = (Read-Host "Paste a fresh Discord 'Copy link' URL (or press Enter to retry)").Trim('"', ' ')
+            $fresh = Ask "Paste a fresh Discord 'Copy link' URL (or press Enter to retry)"
             if ($fresh) { $source = $fresh; SaveText $cfgUrl $source; Info "Saved. Retrying..." }
         }
     }
@@ -257,12 +291,12 @@ try {
     if ($match) { $id = $match.Matches[0].Groups[1].Value.Trim() }
     if ($id -match '^[A-Za-z0-9_-]{3,16}$') {
         Info "Current Bonsai username (online_id): $id"
-        $newId = (Read-Host "Press Enter to keep it, or type a different username").Trim()
+        $newId = Ask "Press Enter to keep it, or type a different username"
         if ($newId) { $id = $newId }
     }
     while ($id -notmatch '^[A-Za-z0-9_-]{3,16}$') {
         Warn "online_id is missing or invalid (3-16 letters/numbers/_/-)."
-        $id = (Read-Host "Enter your Bonsai username").Trim()
+        $id = Ask "Enter your Bonsai username"
     }
     Set-IniValue $ini "online_id" $id
     Set-IniValue $ini "lbp3_online" "1"
