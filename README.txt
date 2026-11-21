@@ -22,7 +22,11 @@ HOW TO USE
    "LittleBigPlanet 3.exe" onto the .bat file.
 4. Press Enter to use the GitHub-hosted patch. Type L only if you want to use a
    different URL or local zip.
-5. Start LittleBigPlanet 3 and press Play.
+5. At the Join key prompt, press Enter to use the shared default key. Everyone
+   using this installer shares it, so friends can play together even with
+   Bonsai's Dive In disabled. For a private key, type exactly 17 printable
+   characters; all players must use the same key. Type D to reset to default.
+6. Start LittleBigPlanet 3 and press Play.
 
 No Discord link is needed. The patch is hosted in the GitHub repo, so updates are
 found automatically. If GitHub is unreachable, the bundled lbp3-128-online.zip

@@ -40,6 +40,15 @@ these files together in one folder:
 4. Enter your Bonsai username when asked (or press Enter to keep the current one).
 5. Start LittleBigPlanet 3 and press **Play**.
 
+## Join key (playing together with Dive In disabled)
+
+The patch already contains a shared join key, `PatchworkLBP3 1.0`, so everyone using this installer can
+play together even though Bonsai has Dive In disabled. The installer can also write a **custom join
+key**: choose it at the "Join key" prompt. It must be exactly **17 printable ASCII characters** —
+a hard limit, because the key is written into a fixed-size slot in `eboot.bin` (vaddr `0x124b1f0`)
+and a longer value would corrupt the data after it. Everyone who should be able to join must use the
+same key. Type `D` at the prompt to return to the default key.
+
 ## Patch source and auto-update
 
 The patch lives at `patch/lbp3-128-online.zip` in this repository and is downloaded from

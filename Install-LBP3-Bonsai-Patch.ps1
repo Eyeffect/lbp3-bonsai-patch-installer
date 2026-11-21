@@ -14,8 +14,10 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $cfgUrl    = Join-Path $scriptDir "patch-source.txt"
 $cfgPort   = Join-Path $scriptDir "port-path.txt"
 $cfgHash   = Join-Path $scriptDir "installed-hash.txt"
+$cfgJoin   = Join-Path $scriptDir "join-key.txt"
 $tmpZip    = Join-Path $env:TEMP "lbp3-bonsai-patch-update.zip"
 $stage     = Join-Path $env:TEMP "lbp3-bonsai-patch-stage"
+$defaultJoinKey = "PatchworkLBP3 1.0"
 
 # The patch is hosted in this GitHub repo, so there is no expiring Discord link.
 # Updating the file in the repo makes every installer run pick up the new hash.
@@ -36,6 +38,28 @@ function SaveText($path, $text) { [IO.File]::WriteAllText($path, $text, [Text.UT
 function ReadText($path) { if (Test-Path -LiteralPath $path) { (Get-Content -LiteralPath $path -Raw).Trim() } else { "" } }
 function Get-TitleIds($doc) {
     @($doc.Patch.TitleID.ID | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.InnerText } })
+}
+
+function Apply-JoinKey($zip, $key) {
+    # The digest key is the utf8 line at eboot vaddr 0x124b1f0. It must stay
+    # exactly 17 bytes so it cannot overwrite the data that follows it.
+    $work = Join-Path $env:TEMP "lbp3-bonsai-patch-joinkey"
+    Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
+    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $work)
+    $xml = Get-ChildItem -LiteralPath $work -Recurse -File -Filter *.xml | Select-Object -First 1
+    if (-not $xml) { Die "Could not find the patch XML to set the join key." }
+    [xml]$doc = Get-Content -LiteralPath $xml.FullName -Raw
+    $found = $false
+    foreach ($line in @($doc.Patch.Metadata.PatchList.Line)) {
+        if ($line.Type -eq "utf8" -and $line.Address -eq "0x124b1f0") {
+            $line.Value = $key
+            $found = $true
+        }
+    }
+    if (-not $found) { Die "The patch has no join-key slot at 0x124b1f0; refusing to guess." }
+    $doc.Save($xml.FullName)
+    Remove-Item -LiteralPath $zip -Force
+    Compress-Archive -Path (Join-Path $work "*") -DestinationPath $zip -Force
 }
 
 function Find-Port($arg) {
@@ -236,6 +260,38 @@ try {
     }
     $names = Check-Zip $tmpZip
     foreach ($n in $names) { Good "Verified patch: $n" }
+
+    # --- Join key ----------------------------------------------------------
+    Head "Join key (optional)"
+    Info "Everyone using this installer already shares the key '$defaultJoinKey',"
+    Info "so friends can play together even with Bonsai's Dive In disabled."
+    $joinKey = ReadText $cfgJoin
+    Info "Current custom key: $(if ($joinKey) { $joinKey } else { '(default)' })"
+    $requested = Ask "Press Enter to keep, type a 17-character key, or type D for the default"
+    if ($requested -ieq "D") {
+        $joinKey = ""
+        Remove-Item -LiteralPath $cfgJoin -Force -ErrorAction SilentlyContinue
+    } elseif ($requested) {
+        while ($requested.Length -ne 17 -or $requested -notmatch '^[\x20-\x7E]{17}$') {
+            Warn "A custom key must be exactly 17 printable ASCII characters."
+            $requested = Ask "Enter 17 characters, or press Enter for the default"
+            if (-not $requested) { $requested = "D"; break }
+        }
+        if ($requested -ieq "D") {
+            $joinKey = ""
+            Remove-Item -LiteralPath $cfgJoin -Force -ErrorAction SilentlyContinue
+        } else {
+            $joinKey = $requested
+            SaveText $cfgJoin $joinKey
+        }
+    }
+    if ($joinKey) {
+        Apply-JoinKey $tmpZip $joinKey
+        Good "Custom join key applied: $joinKey"
+    } else {
+        Info "Using the patch's default join key: $defaultJoinKey"
+    }
+
     $newHash = (Get-FileHash -LiteralPath $tmpZip -Algorithm SHA256).Hash
     Info "SHA-256: $newHash"
 
