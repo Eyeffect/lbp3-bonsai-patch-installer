@@ -40,6 +40,20 @@ these files together in one folder:
 4. Enter your Bonsai username when asked (or press Enter to keep the current one).
 5. Start LittleBigPlanet 3 and press **Play**.
 
+## Custom server selection
+
+At startup the installer offers three choices:
+
+1. **Bonsai** — the bundled, verified patch (default).
+2. **Custom server address** — enter an IP or hostname; the installer adds a marked, reversible line to
+   `C:\Windows\System32\drivers\etc\hosts` mapping `lbp.lbpbonsai.com` to it. This redirects the game to
+   your server without changing any patch bytes. It needs **Run as administrator**, and choosing option 1
+   again removes the override.
+3. **Custom patch** — paste a URL or local ZIP path for a patch built for another server.
+
+Option 2 only changes where the Bonsai-patched client connects; the server still has to speak the PS4
+LBP3 protocol and accept the client's login.
+
 ## Join key (playing together with Dive In disabled)
 
 The patch already contains a shared join key, `PatchworkLBP3 1.0`, so everyone using this installer can

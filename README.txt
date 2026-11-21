@@ -20,13 +20,18 @@ HOW TO USE
 2. Double-click the .bat file.
 3. If it cannot find the game, drag the folder containing
    "LittleBigPlanet 3.exe" onto the .bat file.
-4. Press Enter to use the GitHub-hosted patch. Type L only if you want to use a
+4. At Server selection, choose:
+     1 = Bonsai (default)
+     2 = custom server IP/hostname (maps lbp.lbpbonsai.com to it via the hosts
+         file; requires Run as administrator; choose 1 again to remove it)
+     3 = custom patch URL or local zip for another server
+5. Press Enter to use the GitHub-hosted patch. Type L only if you want to use a
    different URL or local zip.
-5. At the Join key prompt, press Enter to use the shared default key. Everyone
+6. At the Join key prompt, press Enter to use the shared default key. Everyone
    using this installer shares it, so friends can play together even with
    Bonsai's Dive In disabled. For a private key, type exactly 17 printable
    characters; all players must use the same key. Type D to reset to default.
-6. Start LittleBigPlanet 3 and press Play.
+7. Start LittleBigPlanet 3 and press Play.
 
 No Discord link is needed. The patch is hosted in the GitHub repo, so updates are
 found automatically. If GitHub is unreachable, the bundled lbp3-128-online.zip

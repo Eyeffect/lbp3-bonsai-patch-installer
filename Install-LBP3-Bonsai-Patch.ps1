@@ -15,6 +15,11 @@ $cfgUrl    = Join-Path $scriptDir "patch-source.txt"
 $cfgPort   = Join-Path $scriptDir "port-path.txt"
 $cfgHash   = Join-Path $scriptDir "installed-hash.txt"
 $cfgJoin   = Join-Path $scriptDir "join-key.txt"
+$cfgServer = Join-Path $scriptDir "custom-server.txt"
+$hostsPath = Join-Path $env:WINDIR "System32\drivers\etc\hosts"
+$markerBegin = "# LBP3-Bonsai-Installer custom server BEGIN"
+$markerEnd   = "# LBP3-Bonsai-Installer custom server END"
+$serverHost  = "lbp.lbpbonsai.com"
 $tmpZip    = Join-Path $env:TEMP "lbp3-bonsai-patch-update.zip"
 $stage     = Join-Path $env:TEMP "lbp3-bonsai-patch-stage"
 $defaultJoinKey = "PatchworkLBP3 1.0"
@@ -38,6 +43,42 @@ function SaveText($path, $text) { [IO.File]::WriteAllText($path, $text, [Text.UT
 function ReadText($path) { if (Test-Path -LiteralPath $path) { (Get-Content -LiteralPath $path -Raw).Trim() } else { "" } }
 function Get-TitleIds($doc) {
     @($doc.Patch.TitleID.ID | ForEach-Object { if ($_ -is [string]) { $_ } else { $_.InnerText } })
+}
+
+function Test-Admin {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    return (New-Object Security.Principal.WindowsPrincipal($identity)).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Set-HostsOverride($address) {
+    if (-not (Test-Admin)) {
+        Warn "Custom server override needs Administrator rights. Right-click the .bat > Run as administrator."
+        return $false
+    }
+    try { $lines = @(Get-Content -LiteralPath $hostsPath -ErrorAction Stop) }
+    catch { Warn "Could not read the hosts file: $($_.Exception.Message)"; return $false }
+
+    $out = New-Object System.Collections.Generic.List[string]
+    $skip = $false
+    foreach ($line in $lines) {
+        if ($line -eq $markerBegin) { $skip = $true; continue }
+        if ($line -eq $markerEnd) { $skip = $false; continue }
+        if (-not $skip) { $out.Add($line) }
+    }
+    if ($address) {
+        $out.Add("")
+        $out.Add($markerBegin)
+        $out.Add("$address $serverHost")
+        $out.Add($markerEnd)
+    }
+    try {
+        [IO.File]::WriteAllLines($hostsPath, $out, [Text.Encoding]::ASCII)
+        return $true
+    } catch {
+        Warn "Could not write the hosts file: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 function Apply-JoinKey($zip, $key) {
@@ -221,6 +262,38 @@ try {
         Warn "Continuing anyway as requested."
     }
 
+    # --- Server selection ---------------------------------------------------
+    Head "Server selection"
+    Info "1) Bonsai - bundled patch (default)"
+    Info "2) Custom server address - redirects $serverHost to your IP/hostname"
+    Info "3) Custom patch - paste a URL or local zip for any server"
+    $choice = Ask "Choose 1, 2 or 3 (Enter = 1)"
+    $customServer = ReadText $cfgServer
+    if ($choice -eq "2") {
+        while ($true) {
+            $address = Ask "Custom server IP/hostname (blank = Bonsai)"
+            if (-not $address) { $customServer = ""; break }
+            if ($address -match '^(?:\d{1,3}\.){3}\d{1,3}$' -or $address -match '^[A-Za-z0-9.-]+$') {
+                $customServer = $address
+                break
+            }
+            Warn "Enter an IPv4 address or a hostname."
+        }
+        SaveText $cfgServer $customServer
+    } elseif ($choice -eq "3") {
+        $customServer = ""
+        Remove-Item -LiteralPath $cfgServer -Force -ErrorAction SilentlyContinue
+        $customSource = Ask "Paste the patch URL or local zip path"
+        if (-not $customSource) { Die "No custom source entered." }
+        SaveText $cfgUrl $customSource
+        Info "Custom patch source saved."
+    } else {
+        $customServer = ""
+        Remove-Item -LiteralPath $cfgServer -Force -ErrorAction SilentlyContinue
+    }
+    if ($customServer) { Info "Custom server: $customServer -> $serverHost" }
+    else { Info "Using Bonsai server." }
+
     # --- Patch source link -------------------------------------------------
     $source = ReadText $cfgUrl
     if (-not $source) { $source = $defaultUrl; SaveText $cfgUrl $source }
@@ -374,6 +447,19 @@ try {
             Rename-Item -LiteralPath $backupIndex -NewName "files.json.bak" -Force
             Info "Backup disabled (kept at $backup)."
         }
+    }
+
+    # --- Custom server override --------------------------------------------
+    $hasOverride = $false
+    try { $hasOverride = Select-String -LiteralPath $hostsPath -Pattern ([regex]::Escape($markerBegin)) -Quiet -ErrorAction Stop } catch { }
+    if ($customServer -or $hasOverride) {
+        Head "Server override"
+    }
+    if (($customServer -or $hasOverride) -and (Set-HostsOverride $customServer)) {
+        if ($customServer) { Good "$serverHost now points to $customServer (hosts file updated)." }
+        else { Good "Custom server override removed; using Bonsai normally." }
+    } elseif ($customServer -or $hasOverride) {
+        Warn "Patch installed, but the hosts override could not be applied/removed (admin rights needed)."
     }
 
     SaveText $cfgPort $port
